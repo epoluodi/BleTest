@@ -35,7 +35,7 @@ public class ECGSubView {
     private float step = 1;
     private int strokeWidth = 1;
     private boolean thumbnailMode = true;
-    private float hScale = 2.0f; //horizontal scaling
+    private float hScale = 2.f; //horizontal scaling
     private float everyNPointDraw = 1;
 
     private static final String TAG = "ECGSubView";

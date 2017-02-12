@@ -85,8 +85,10 @@ public class MainActivity extends AppCompatActivity {
         Collections.addAll(text, s);
         view.setText(text);
         view.setInputChannelNum(1);
+        view.setScaleDetail(1);
 
         view.setChannel(queue);
+
 
         editText = (EditText)findViewById(R.id.edittxt);
         btnset=(Button)findViewById(R.id.btnset);
@@ -112,39 +114,40 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                     return;
                 }
-                bytesch = new byte[5];
+                bytesch = new byte[6];
                 bytesch[0] = bhead;
-                bytesch[1] = (byte) 5;
-                bytesch[2] = (byte) 1;
+                bytesch[1] = (byte) 6;
+                bytesch[2] = (byte) 3;
                 switch (ichannel)
                 {
                     case 1:
-                        bytesch[3] = (byte) 0x21;
+                        bytesch[3] = (byte) 0x01;
                         break;
                     case 2:
-                        bytesch[3] = (byte) 0x22;
+                        bytesch[3] = (byte) 0x02;
                         break;
                     case 3:
-                        bytesch[3] = (byte) 0x23;
+                        bytesch[3] = (byte) 0x03;
                         break;
                     case 4:
-                        bytesch[3] = (byte) 0x24;
+                        bytesch[3] = (byte) 0x04;
                         break;
                     case 5:
-                        bytesch[3] = (byte) 0x25;
+                        bytesch[3] = (byte) 0x05;
                         break;
                 }
-
+                bytesch[4]=0;
                 byte sum=0;
                 for (int i =0 ;i<bytesch.length-1;i++)
                 {
                     sum ^=bytesch[i];
                 }
-                bytesch[4] = (byte) ~sum;
+                bytesch[5] = (byte) ~sum;
                 StringBuilder stringBuilder = new StringBuilder();
                 for (byte byteChar : bytesch)
                     stringBuilder.append(String.format("%02X ", byteChar));
                 txt.setText("发送数据数据:" + stringBuilder.toString() + "\n");
+                Log.i("设置通道",stringBuilder.toString());
                 bluetoothGattCharacteristic.setValue(bytesch);
                 bluetoothGatt.writeCharacteristic(bluetoothGattCharacteristic);
             }
@@ -200,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 };
 
-                timer.schedule(timerTask, 0, 60);
+                timer.schedule(timerTask, 0, 45);
 
                 btn3.setEnabled(false);
                 btn1.setEnabled(false);
@@ -224,6 +227,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 txt.setText("");
+                byte[] bytes1 = new byte[5];
+                bytes1[0] = bhead;
+                bytes1[1] = (byte) 5;
+                bytes1[2] = (byte) 0x0B;
+                bytes1[3] = (byte) 1;
+                bytes1[4] = (byte) 0x4B;
+
+                bluetoothGattCharacteristic.setValue(bytes1);
+                bluetoothGatt.writeCharacteristic(bluetoothGattCharacteristic);
+
             }
         });
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
@@ -256,7 +269,7 @@ public class MainActivity extends AppCompatActivity {
             super.handleMessage(msg);
             switch (msg.what) {
                 case 0:
-                    txt.setText(msg.obj.toString() + "\n" + txt.getText().toString());
+                    txt.setText(msg.obj.toString() + "\n" );
                     break;
 
 
@@ -273,7 +286,7 @@ public class MainActivity extends AppCompatActivity {
             Log.i("搜索 信号", String.valueOf(rssi));
 
 
-            if (device.getName().equals("SPSD")) {
+            if (device.getName().equals("HC-08")) {
 
                 Message message = handler.obtainMessage();
                 message.obj = "设备名称:" + device.getName() + "\n" +
@@ -351,6 +364,11 @@ public class MainActivity extends AppCompatActivity {
             handler.sendMessage(message);
             bluetoothGatt.setCharacteristicNotification(bluetoothGattCharacteristic, true);
             bluetoothGatt.readRemoteRssi();
+
+
+
+
+
 //            for (BluetoothGattDescriptor bluetoothGattDescriptor : bluetoothGattCharacteristic.getDescriptors())
 //            {
 //                message = handler.obtainMessage();
@@ -360,8 +378,8 @@ public class MainActivity extends AppCompatActivity {
 ////                00002902-0000-1000-8000-00805f9b34fb
 ////                00002901-0000-1000-8000-00805f9b34fb
 //            }
-            bluetoothGattDescriptor1 = bluetoothGattCharacteristic.getDescriptors().get(0);
-            bluetoothGattDescriptor2 = bluetoothGattCharacteristic.getDescriptors().get(1);
+//            bluetoothGattDescriptor1 = bluetoothGattCharacteristic.getDescriptors().get(0);
+//            bluetoothGattDescriptor2 = bluetoothGattCharacteristic.getDescriptors().get(1);
 
 //            bluetoothGatt.readCharacteristic(bluetoothGattCharacteristic);
 //        bluetoothGattCharacteristic = bluetoothGattService.getCharacteristic(UUID.fromString("0000fff4-0000-1000-8000-00805f9b34fb"));
@@ -401,19 +419,51 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
-            byte[] value = characteristic.getValue();
+            final byte[] value = characteristic.getValue();
 
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    if (value == null || value.length <= 0) {
+                        return;
+                    }
+
+                    byte[] buffer = new byte[4];
+                    buffer[0]=0;
+                    buffer[1] = value[2];
+                    buffer[2] = value[3];
+                    buffer[3] = value[4];
+                    int ivalue= bytesToInt2(buffer,0);
+                    double dvalue = ((double) ivalue) *2*1.8 /1.4 / (Math.pow(2,24)-1);
+                    dvalue = (dvalue*1000 -1330)*10;
+//            dvalue*=10;
+                    short[] shorts1 = new short[1];
+                    shorts1[0] = (short) dvalue;
+                    try {
+                        queue.put(shorts1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
             StringBuilder stringBuilder = new StringBuilder("");
             if (value == null || value.length <= 0) {
                 return;
             }
             for (byte byteChar : value)
                 stringBuilder.append(String.format("%02X ", byteChar));
-
-//            Log.i("接收到得数据",stringBuilder.toString());
-
-            int ivalue= bytesToInt2(value,1);
-            double dvalue = ivalue *2*1.8 /1.4 / (Math.pow(2,24)-1);
+//
+////            Log.e("接收到得数据",stringBuilder.toString());
+//
+            byte[] buffer = new byte[4];
+            buffer[0]=0;
+            buffer[1] = value[2];
+            buffer[2] = value[3];
+            buffer[3] = value[4];
+            int ivalue= bytesToInt2(buffer,0);
+            double dvalue = ((double) ivalue) *2*1.8 /1.4 / (Math.pow(2,24)-1);
+//            dvalue = (dvalue*1000 -1330)*10;
+//            dvalue*=10;
             short[] shorts1 = new short[1];
             shorts1[0] = (short) dvalue;
             try {
@@ -421,7 +471,7 @@ public class MainActivity extends AppCompatActivity {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            DecimalFormat df = new java.text.DecimalFormat("#.00000");
+            DecimalFormat df = new java.text.DecimalFormat("#.000000");
             String strvalue=df.format(dvalue);
 
 
