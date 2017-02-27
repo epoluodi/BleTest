@@ -13,21 +13,34 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.achartengine.ChartFactory;
+import org.achartengine.GraphicalView;
+import org.achartengine.chart.PointStyle;
+import org.achartengine.model.XYMultipleSeriesDataset;
+import org.achartengine.model.XYSeries;
+import org.achartengine.renderer.XYMultipleSeriesRenderer;
+import org.achartengine.renderer.XYSeriesRenderer;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -44,31 +57,36 @@ public class MainActivity extends AppCompatActivity {
     BluetoothGattCharacteristic bluetoothGattCharacteristic;
     BluetoothGattDescriptor bluetoothGattDescriptor1, bluetoothGattDescriptor2;
 
-    Timer timer;
+    Timer timer, timer2;
     Button btn1, btn2, btn3, btn4, btn5;
     EditText txt;
 
     EditText editText;
     Button btnset;
+    LinearLayout linearLayout;
+    Queue<Double> queue;
 
     byte[] bytes1;//轮训
     byte[] bytesch;//通道
 
-    byte bhead =(byte) 0xBB;
+    byte bhead = (byte) 0xBB;
 
-    ECGView view;
+    //    ECGView view;
     short[] shorts = new short[1];
-    private LinkedBlockingQueue queue = new LinkedBlockingQueue();
+
+    //    private LinkedBlockingQueue queue = new LinkedBlockingQueue();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        try {
-            shorts[0]=0;
-            queue.put(shorts);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        queue = new LinkedBlockingQueue<>();
+
+//        try {
+//            shorts[0]=0;
+////            queue.put(shorts);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
 //        new DataGeneratingThread(queue).start();
         bytes1 = new byte[5];
         bytes1[0] = bhead;
@@ -77,21 +95,23 @@ public class MainActivity extends AppCompatActivity {
         bytes1[3] = (byte) 1;
         bytes1[4] = (byte) 76;
 
-        view = (ECGView)findViewById(R.id.ecg);
-        view.setSubViewNum(12);
-        view.setColumnSubViewNum(2);
-        ArrayList<String> text = new ArrayList<>();
-        String[] s = new String[]{"I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"};
-        Collections.addAll(text, s);
-        view.setText(text);
-        view.setInputChannelNum(1);
-        view.setScaleDetail(1);
 
-        view.setChannel(queue);
+//
+//        view = (ECGView)findViewById(R.id.ecg);
+//        view.setSubViewNum(12);
+//        view.setColumnSubViewNum(2);
+//        ArrayList<String> text = new ArrayList<>();
+//        String[] s = new String[]{"I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"};
+//        Collections.addAll(text, s);
+//        view.setText(text);
+//        view.setInputChannelNum(1);
+////        view.setScaleDetail(1);
+//
+//        view.setChannel(queue);
 
 
-        editText = (EditText)findViewById(R.id.edittxt);
-        btnset=(Button)findViewById(R.id.btnset);
+        editText = (EditText) findViewById(R.id.edittxt);
+        btnset = (Button) findViewById(R.id.btnset);
         btn1 = (Button) findViewById(R.id.btn1);
         btn2 = (Button) findViewById(R.id.btn2);
         btn3 = (Button) findViewById(R.id.btn3);
@@ -106,11 +126,9 @@ public class MainActivity extends AppCompatActivity {
                 if (editText.getText().toString().equals(""))
                     return;
                 int ichannel;
-                try
-                {
+                try {
                     ichannel = Integer.parseInt(editText.getText().toString());
-                }catch (Exception e)
-                {
+                } catch (Exception e) {
                     e.printStackTrace();
                     return;
                 }
@@ -118,8 +136,7 @@ public class MainActivity extends AppCompatActivity {
                 bytesch[0] = bhead;
                 bytesch[1] = (byte) 6;
                 bytesch[2] = (byte) 3;
-                switch (ichannel)
-                {
+                switch (ichannel) {
                     case 1:
                         bytesch[3] = (byte) 0x01;
                         break;
@@ -136,18 +153,17 @@ public class MainActivity extends AppCompatActivity {
                         bytesch[3] = (byte) 0x05;
                         break;
                 }
-                bytesch[4]=0;
-                byte sum=0;
-                for (int i =0 ;i<bytesch.length-1;i++)
-                {
-                    sum ^=bytesch[i];
+                bytesch[4] = 0;
+                byte sum = 0;
+                for (int i = 0; i < bytesch.length - 1; i++) {
+                    sum ^= bytesch[i];
                 }
                 bytesch[5] = (byte) ~sum;
                 StringBuilder stringBuilder = new StringBuilder();
                 for (byte byteChar : bytesch)
                     stringBuilder.append(String.format("%02X ", byteChar));
                 txt.setText("发送数据数据:" + stringBuilder.toString() + "\n");
-                Log.i("设置通道",stringBuilder.toString());
+                Log.i("设置通道", stringBuilder.toString());
                 bluetoothGattCharacteristic.setValue(bytesch);
                 bluetoothGatt.writeCharacteristic(bluetoothGattCharacteristic);
             }
@@ -192,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
 //                handler.sendMessage(message);
 
                 txt.setText("发送数据数据:" + stringBuilder.toString() + "\n");
-                timer=new Timer();
+                timer = new Timer();
                 TimerTask timerTask = new TimerTask() {
                     @Override
                     public void run() {
@@ -203,10 +219,20 @@ public class MainActivity extends AppCompatActivity {
                     }
                 };
 
-                timer.schedule(timerTask, 0, 45);
+                timer.schedule(timerTask, 0, 5);
 
                 btn3.setEnabled(false);
                 btn1.setEnabled(false);
+
+
+                timer2 = new Timer();
+                TimerTask timerTask1 = new TimerTask() {
+                    @Override
+                    public void run() {
+                        handler.sendEmptyMessage(0);
+                    }
+                };
+                timer2.schedule(timerTask1, 10, 5);
 
 
             }
@@ -218,7 +244,10 @@ public class MainActivity extends AppCompatActivity {
 
                 timer.cancel();
                 timer.purge();
-                timer=null;
+                timer = null;
+                timer2.cancel();
+                timer2.purge();
+                timer2 = null;
                 btn3.setEnabled(true);
                 btn1.setEnabled(true);
             }
@@ -226,6 +255,7 @@ public class MainActivity extends AppCompatActivity {
         btn5.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                mDataset.clear();
                 txt.setText("");
                 byte[] bytes1 = new byte[5];
                 bytes1[0] = bhead;
@@ -245,22 +275,164 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
+        //初始化图表
+        initChart(null, null, 0, xMax, yMin, yMax);
 
 
+    }
 
+
+    //图表相关
+    private XYSeries series;
+    private XYMultipleSeriesDataset mDataset;
+    private GraphicalView chart;
+    private XYMultipleSeriesRenderer renderer;
+    private Context context;
+    private int yMax = 2;//y轴最大值，根据不同传感器变化
+    private int xMax = 100;//一屏显示测量次数
+    private int yMin = 0;
+
+    private int addX = -1;
+    private double addY = 0;
+    public double AVERAGE = 0;//存储平均值
+
+    private void updateChart() {
+
+        //设置好下一个需要增加的节点
+
+//        addY = AVERAGE;//需要增加的值
+        try {
+            addY = queue.remove();
+        } catch (Exception e) {
+            return;
+        }
+        //移除数据集中旧的点集
+        mDataset.removeSeries(series);
+
+        //判断当前点集中到底有多少点，因为屏幕总共只能容纳100个，所以当点数超过100时，长度永远是100
+        int length = series.getItemCount();
+        if (length > 5000) {//设置最多5000个数
+            length = 5000;
+        }
+
+        //注释掉的文字为window资源管理器效果
+
+        //将旧的点集中x和y的数值取出来放入backup中，并且将x的值加1，造成曲线向右平移的效果
+//	     for (int i = 0; i < length; i++) {
+//		     xv[i] = (int) series.getX(i) + 1;
+//		     yv[i] = (int) series.getY(i);
+//	     }
+
+        //点集先清空，为了做成新的点集而准备
+//	     series.clear();
+
+        //将新产生的点首先加入到点集中，然后在循环体中将坐标变换后的一系列点都重新加入到点集中
+        //这里可以试验一下把顺序颠倒过来是什么效果，即先运行循环体，再添加新产生的点
+        //每一个新点坐标都后移一位
+        series.add(addX++, addY);//最重要的一句话，以xy对的方式往里放值
+//	     for (int k = 0; k < length; k++) {
+//	         series.add(xv[k], yv[k]);//把之前的数据放进去
+//	     }
+        if (addX > xMax) {
+            renderer.setXAxisMin(addX - xMax);
+            renderer.setXAxisMax(addX);
+        }
+
+
+        //重要：在数据集中添加新的点集
+        mDataset.addSeries(series);
+
+        //视图更新，没有这一步，曲线不会呈现动态
+        //如果在非UI主线程中，需要调用postInvalidate()，具体参考api
+        chart.invalidate();
+    }
+
+    /**
+     * 初始化图表
+     */
+    private void initChart(String xTitle, String yTitle, int minX, int maxX, int minY, int maxY) {
+        //这里获得main界面上的布局，下面会把图表画在这个布局里面
+        LinearLayout layout = (LinearLayout) findViewById(R.id.chart);
+        //这个类用来放置曲线上的所有点，是一个点的集合，根据这些点画出曲线
+        series = new XYSeries("心跳曲线");
+        //创建一个数据集的实例，这个数据集将被用来创建图表
+        mDataset = new XYMultipleSeriesDataset();
+        //将点集添加到这个数据集中
+        mDataset.addSeries(series);
+
+        //以下都是曲线的样式和属性等等的设置，renderer相当于一个用来给图表做渲染的句柄
+        int lineColor = Color.WHITE;
+        PointStyle style = PointStyle.CIRCLE;
+        renderer = buildRenderer(lineColor, style, true);
+
+        //设置好图表的样式
+        setChartSettings(renderer, xTitle, yTitle,
+                minX, maxX, //x轴最小最大值
+                minY, maxY, //y轴最小最大值
+                Color.BLACK, //坐标轴颜色
+                Color.WHITE//标签颜色
+        );
+
+        //生成图表
+        chart = ChartFactory.getLineChartView(this, mDataset, renderer);
+
+        //将图表添加到布局中去
+        layout.addView(chart, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT));
+    }
+
+
+    protected XYMultipleSeriesRenderer buildRenderer(int color, PointStyle style, boolean fill) {
+        XYMultipleSeriesRenderer renderer = new XYMultipleSeriesRenderer();
+
+        //设置图表中曲线本身的样式，包括颜色、点的大小以及线的粗细等
+        XYSeriesRenderer r = new XYSeriesRenderer();
+        r.setColor(color);
+        r.setPointStyle(style);
+        r.setFillPoints(fill);
+        r.setLineWidth(2);//这是线宽
+        renderer.addSeriesRenderer(r);
+
+        return renderer;
+    }
+
+    protected void setChartSettings(XYMultipleSeriesRenderer renderer, String xTitle, String yTitle,
+                                    double xMin, double xMax, double yMin, double yMax, int axesColor, int labelsColor) {
+        //有关对图表的渲染可参看api文档
+        renderer.setChartTitle("心跳");//设置标题
+        renderer.setChartTitleTextSize(20);
+        renderer.setXAxisMin(xMin);//设置x轴的起始点
+        renderer.setXAxisMax(xMax);//设置一屏有多少个点
+        renderer.setYAxisMin(yMin);
+        renderer.setYAxisMax(yMax);
+        renderer.setBackgroundColor(Color.BLACK);
+        renderer.setLabelsColor(Color.YELLOW);
+        renderer.setAxesColor(axesColor);
+        renderer.setLabelsColor(labelsColor);
+        renderer.setShowGrid(true);
+        renderer.setGridColor(Color.GREEN);//设置格子的颜色
+        renderer.setXLabels(15);//没有什么卵用
+        renderer.setYLabels(15);//把y轴刻度平均分成多少个
+        renderer.setLabelsTextSize(25);
+        renderer.setXTitle(xTitle);//x轴的标题
+        renderer.setYTitle(yTitle);//y轴的标题
+        renderer.setAxisTitleTextSize(30);
+        renderer.setYLabelsAlign(Paint.Align.RIGHT);
+        renderer.setPointSize((float) 2);
+        renderer.setShowLegend(false);//说明文字
+        renderer.setLegendTextSize(20);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        view.start();
+//        view.start();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        view.stop();
+//        view.stop();
     }
 
     Handler handler = new Handler() {
@@ -269,7 +441,9 @@ public class MainActivity extends AppCompatActivity {
             super.handleMessage(msg);
             switch (msg.what) {
                 case 0:
-                    txt.setText(msg.obj.toString() + "\n" );
+                    if (msg.obj != null)
+                        txt.setText(msg.obj.toString() + "\n");
+                    updateChart();
                     break;
 
 
@@ -366,9 +540,6 @@ public class MainActivity extends AppCompatActivity {
             bluetoothGatt.readRemoteRssi();
 
 
-
-
-
 //            for (BluetoothGattDescriptor bluetoothGattDescriptor : bluetoothGattCharacteristic.getDescriptors())
 //            {
 //                message = handler.obtainMessage();
@@ -413,7 +584,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicWrite(gatt, characteristic, status);
-            Log.i("onCharacteristicChanged", characteristic.getUuid().toString());
+
         }
 
         @Override
@@ -421,72 +592,42 @@ public class MainActivity extends AppCompatActivity {
             super.onCharacteristicChanged(gatt, characteristic);
             final byte[] value = characteristic.getValue();
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    if (value == null || value.length <= 0) {
-                        return;
-                    }
 
-                    byte[] buffer = new byte[4];
-                    buffer[0]=0;
-                    buffer[1] = value[2];
-                    buffer[2] = value[3];
-                    buffer[3] = value[4];
-                    int ivalue= bytesToInt2(buffer,0);
-                    double dvalue = ((double) ivalue) *2*1.8 /1.4 / (Math.pow(2,24)-1);
-                    dvalue = (dvalue*1000 -1330)*10;
-//            dvalue*=10;
-                    short[] shorts1 = new short[1];
-                    shorts1[0] = (short) dvalue;
-                    try {
-                        queue.put(shorts1);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }).start();
-            StringBuilder stringBuilder = new StringBuilder("");
-            if (value == null || value.length <= 0) {
-                return;
-            }
-            for (byte byteChar : value)
-                stringBuilder.append(String.format("%02X ", byteChar));
-//
-////            Log.e("接收到得数据",stringBuilder.toString());
-//
+//            StringBuilder stringBuilder = new StringBuilder("");
+//            if (value == null || value.length <= 0) {
+//                return;
+//            }
+//            for (byte byteChar : value)
+//                stringBuilder.append(String.format("%02X ", byteChar));
+
+
             byte[] buffer = new byte[4];
-            buffer[0]=0;
+            buffer[0] = 0;
             buffer[1] = value[2];
             buffer[2] = value[3];
             buffer[3] = value[4];
-            int ivalue= bytesToInt2(buffer,0);
-            double dvalue = ((double) ivalue) *2*1.8 /1.4 / (Math.pow(2,24)-1);
+            int ivalue = bytesToInt2(buffer, 0);
+            double dvalue = ((double) ivalue) * 2 * 1.8 / 1.4 / (Math.pow(2, 24) - 1);
 //            dvalue = (dvalue*1000 -1330)*10;
 //            dvalue*=10;
             short[] shorts1 = new short[1];
             shorts1[0] = (short) dvalue;
-            try {
-                queue.put(shorts1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            DecimalFormat df = new java.text.DecimalFormat("#.000000");
-            String strvalue=df.format(dvalue);
-
-
-            Message message = handler.obtainMessage();
-            message.obj = "数据:" + stringBuilder.toString() + "\n " + "数值:"+strvalue+"\n";
-            handler.sendMessage(message);
-//            if (characteristic.getUuid().toString().equals("0000fff4-0000-1000-8000-00805f9b34fb")) {
+            AVERAGE = dvalue;
+            queue.add(AVERAGE);
 //
-//                BluetoothGattDescriptor localBluetoothGattDescriptor =
-//                        characteristic.getDescriptor(UUID.fromString("00002901-0000-1000-8000-00805f9b34fb"));
-//                localBluetoothGattDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-//                bluetoothGatt.writeDescriptor(localBluetoothGattDescriptor);
-//            } else {
-//                bluetoothGatt.setCharacteristicNotification(characteristic, true);
-//            }
+////            try {
+////                queue.put(shorts1);
+////            } catch (InterruptedException e) {
+////                e.printStackTrace();
+////            }
+//            DecimalFormat df = new java.text.DecimalFormat("#.000000");
+//            String strvalue = df.format(dvalue);
+//
+//
+//            Message message = handler.obtainMessage();
+//            message.obj = "数据:" + stringBuilder.toString() + "\n " + "数值:" + strvalue + "\n";
+//            handler.sendMessage(message);
+//
 
 
         }
@@ -494,29 +635,8 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onDescriptorRead(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
             super.onDescriptorRead(gatt, descriptor, status);
-            byte[] value = descriptor.getValue();
-
-            StringBuilder stringBuilder = new StringBuilder("");
-            if (value == null || value.length <= 0) {
-                return;
-            }
-            for (byte byteChar : value)
-                stringBuilder.append(String.format("%02X ", byteChar));
 
 
-//            for (int i = 0; i < value.length; i++) {
-//                int v = value[i] & 0xFF;
-//                String hv = Integer.toHexString(v);
-//                if (hv.length() < 2) {
-//                    stringBuilder.append(0);
-//                }
-//                stringBuilder.append(hv);
-//            }
-//            txt.setText(stringBuilder);
-
-            Message message = handler.obtainMessage();
-            message.obj = "desc 数据:" + stringBuilder.toString() + "\n";
-            handler.sendMessage(message);
         }
 
         @Override
@@ -544,18 +664,16 @@ public class MainActivity extends AppCompatActivity {
     /**
      * byte数组中取int数值，本方法适用于(低位在前，高位在后)的顺序，和和intToBytes（）配套使用
      *
-     * @param src
-     *            byte数组
-     * @param offset
-     *            从数组的第offset位开始
+     * @param src    byte数组
+     * @param offset 从数组的第offset位开始
      * @return int数值
      */
     public static int bytesToInt(byte[] src, int offset) {
         int value;
         value = (int) ((src[offset] & 0xFF)
-                | ((src[offset+1] & 0xFF)<<8)
-                | ((src[offset+2] & 0xFF)<<16)
-                | ((src[offset+3] & 0xFF)<<24));
+                | ((src[offset + 1] & 0xFF) << 8)
+                | ((src[offset + 2] & 0xFF) << 16)
+                | ((src[offset + 3] & 0xFF) << 24));
         return value;
     }
 
@@ -564,10 +682,10 @@ public class MainActivity extends AppCompatActivity {
      */
     public static int bytesToInt2(byte[] src, int offset) {
         int value;
-        value = (int) ( ((src[offset] & 0xFF)<<24)
-                |((src[offset+1] & 0xFF)<<16)
-                |((src[offset+2] & 0xFF)<<8)
-                |(src[offset+3] & 0xFF));
+        value = (int) (((src[offset] & 0xFF) << 24)
+                | ((src[offset + 1] & 0xFF) << 16)
+                | ((src[offset + 2] & 0xFF) << 8)
+                | (src[offset + 3] & 0xFF));
         return value;
     }
 
