@@ -15,6 +15,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
@@ -36,8 +37,13 @@ import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 
+
+import java.io.File;
+import java.io.FileWriter;
+import java.lang.reflect.Array;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
@@ -69,8 +75,12 @@ public class MainActivity extends AppCompatActivity {
     byte[] bytes1;//轮训
     byte[] bytesch;//通道
 
-    byte bhead = (byte) 0xBB;
+    boolean isstart=true;
+    byte[] allbuffer;
+    int buffercount;
 
+    byte bhead = (byte) 0xBB;
+    FileWriter writer;
     //    ECGView view;
     short[] shorts = new short[1];
 
@@ -80,7 +90,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         queue = new LinkedBlockingQueue<>();
-
+        allbuffer = new byte[60];
+        buffercount= 1;
 //        try {
 //            shorts[0]=0;
 ////            queue.put(shorts);
@@ -94,6 +105,12 @@ public class MainActivity extends AppCompatActivity {
         bytes1[2] = (byte) 12;
         bytes1[3] = (byte) 1;
         bytes1[4] = (byte) 76;
+        File file=new File(Environment.getExternalStorageDirectory(),"data.csv");
+        try {
+            writer = new FileWriter(file, true);
+        }
+        catch (Exception e)
+        {e.printStackTrace();}
 
 
 //
@@ -192,39 +209,49 @@ public class MainActivity extends AppCompatActivity {
 
                 bluetoothGatt.disconnect();
                 bluetoothGatt.close();
+
+                try {
+                    writer.close();
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
             }
         });
         btn3.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                StringBuilder stringBuilder = new StringBuilder();
-
-                for (byte byteChar : bytes1)
-                    stringBuilder.append(String.format("%02X ", byteChar));
+//                StringBuilder stringBuilder = new StringBuilder();
+//
+//                for (byte byteChar : bytes1)
+//                    stringBuilder.append(String.format("%02X ", byteChar));
 
 //                Message message = handler.obtainMessage();
 //                message.obj = "发送数据数据:" + stringBuilder.toString() + "\n";
 //                handler.sendMessage(message);
 
-                txt.setText("发送数据数据:" + stringBuilder.toString() + "\n");
-                timer = new Timer();
-                TimerTask timerTask = new TimerTask() {
-                    @Override
-                    public void run() {
-                        if (bluetoothGattCharacteristic != null) {
-                            bluetoothGattCharacteristic.setValue(bytes1);
-                            bluetoothGatt.writeCharacteristic(bluetoothGattCharacteristic);
-                        }
-                    }
-                };
-
-                timer.schedule(timerTask, 0, 5);
-
+//                txt.setText("发送数据数据:" + stringBuilder.toString() + "\n");
+//                timer = new Timer();
+//                TimerTask timerTask = new TimerTask() {
+//                    @Override
+//                    public void run() {
+//                        if (isstart) {
+//                            if (bluetoothGattCharacteristic != null) {
+//                                bluetoothGattCharacteristic.setValue(bytes1);
+//                                bluetoothGatt.writeCharacteristic(bluetoothGattCharacteristic);
+//                            }
+//                        }
+//                    }
+//                };
+////
+//                timer.schedule(timerTask, 0, 25);
+////
                 btn3.setEnabled(false);
                 btn1.setEnabled(false);
-
-
+//
+//
                 timer2 = new Timer();
                 TimerTask timerTask1 = new TimerTask() {
                     @Override
@@ -232,7 +259,7 @@ public class MainActivity extends AppCompatActivity {
                         handler.sendEmptyMessage(0);
                     }
                 };
-                timer2.schedule(timerTask1, 10, 5);
+                timer2.schedule(timerTask1, 10, 25);
 
 
             }
@@ -242,9 +269,11 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
 
 
-                timer.cancel();
-                timer.purge();
-                timer = null;
+
+
+//                timer.cancel();
+//                timer.purge();
+//                timer = null;
                 timer2.cancel();
                 timer2.purge();
                 timer2 = null;
@@ -257,15 +286,29 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 mDataset.clear();
                 txt.setText("");
-                byte[] bytes1 = new byte[5];
-                bytes1[0] = bhead;
-                bytes1[1] = (byte) 5;
-                bytes1[2] = (byte) 0x0B;
-                bytes1[3] = (byte) 1;
-                bytes1[4] = (byte) 0x4B;
 
-                bluetoothGattCharacteristic.setValue(bytes1);
-                bluetoothGatt.writeCharacteristic(bluetoothGattCharacteristic);
+                if (bluetoothGattCharacteristic != null) {
+
+                    byte[] bytes = new byte[5];
+                    bytes[0] = (byte) 187;
+                    bytes[1] = (byte) 5;
+                    bytes[2] = (byte) 11;
+                    bytes[3] = (byte) 1;
+                    bytes[4] = (byte) 75;
+                    bluetoothGattCharacteristic.setValue(bytes);
+                    bluetoothGatt.writeCharacteristic(bluetoothGattCharacteristic);
+                }
+
+
+//                byte[] bytes1 = new byte[5];
+//                bytes1[0] = bhead;
+//                bytes1[1] = (byte) 5;
+//                bytes1[2] = (byte) 0x0B;
+//                bytes1[3] = (byte) 1;
+//                bytes1[4] = (byte) 0x4B;
+//
+//                bluetoothGattCharacteristic.setValue(bytes1);
+//                bluetoothGatt.writeCharacteristic(bluetoothGattCharacteristic);
 
             }
         });
@@ -353,6 +396,7 @@ public class MainActivity extends AppCompatActivity {
     private void initChart(String xTitle, String yTitle, int minX, int maxX, int minY, int maxY) {
         //这里获得main界面上的布局，下面会把图表画在这个布局里面
         LinearLayout layout = (LinearLayout) findViewById(R.id.chart);
+        layout.setBackgroundColor(Color.WHITE);
         //这个类用来放置曲线上的所有点，是一个点的集合，根据这些点画出曲线
         series = new XYSeries("心跳曲线");
         //创建一个数据集的实例，这个数据集将被用来创建图表
@@ -361,7 +405,7 @@ public class MainActivity extends AppCompatActivity {
         mDataset.addSeries(series);
 
         //以下都是曲线的样式和属性等等的设置，renderer相当于一个用来给图表做渲染的句柄
-        int lineColor = Color.WHITE;
+        int lineColor = Color.BLACK;
         PointStyle style = PointStyle.CIRCLE;
         renderer = buildRenderer(lineColor, style, true);
 
@@ -375,7 +419,7 @@ public class MainActivity extends AppCompatActivity {
 
         //生成图表
         chart = ChartFactory.getLineChartView(this, mDataset, renderer);
-
+        chart.setBackgroundColor(Color.WHITE);
         //将图表添加到布局中去
         layout.addView(chart, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT));
     }
@@ -404,22 +448,23 @@ public class MainActivity extends AppCompatActivity {
         renderer.setXAxisMax(xMax);//设置一屏有多少个点
         renderer.setYAxisMin(yMin);
         renderer.setYAxisMax(yMax);
-        renderer.setBackgroundColor(Color.BLACK);
+        renderer.setBackgroundColor(Color.WHITE);
         renderer.setLabelsColor(Color.YELLOW);
         renderer.setAxesColor(axesColor);
         renderer.setLabelsColor(labelsColor);
         renderer.setShowGrid(true);
-        renderer.setGridColor(Color.GREEN);//设置格子的颜色
+        renderer.setGridColor(Color.RED);//设置格子的颜色
         renderer.setXLabels(15);//没有什么卵用
         renderer.setYLabels(15);//把y轴刻度平均分成多少个
         renderer.setLabelsTextSize(25);
-        renderer.setXTitle(xTitle);//x轴的标题
-        renderer.setYTitle(yTitle);//y轴的标题
+//        renderer.setXTitle(xTitle);//x轴的标题
+//        renderer.setYTitle(yTitle);//y轴的标题
         renderer.setAxisTitleTextSize(30);
         renderer.setYLabelsAlign(Paint.Align.RIGHT);
         renderer.setPointSize((float) 2);
         renderer.setShowLegend(false);//说明文字
         renderer.setLegendTextSize(20);
+
     }
 
     @Override
@@ -460,7 +505,7 @@ public class MainActivity extends AppCompatActivity {
             Log.i("搜索 信号", String.valueOf(rssi));
 
 
-            if (device.getName().equals("HC-08")) {
+            if (device.getName().equals("SPSD")) {
 
                 Message message = handler.obtainMessage();
                 message.obj = "设备名称:" + device.getName() + "\n" +
@@ -540,6 +585,8 @@ public class MainActivity extends AppCompatActivity {
             bluetoothGatt.readRemoteRssi();
 
 
+
+
 //            for (BluetoothGattDescriptor bluetoothGattDescriptor : bluetoothGattCharacteristic.getDescriptors())
 //            {
 //                message = handler.obtainMessage();
@@ -599,21 +646,67 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //            for (byte byteChar : value)
 //                stringBuilder.append(String.format("%02X ", byteChar));
+//
+//
+//            isstart=false;
+//
+//            Log.e("长度",String.valueOf(value.length)+" "+stringBuilder.toString());
 
 
-            byte[] buffer = new byte[4];
-            buffer[0] = 0;
-            buffer[1] = value[2];
-            buffer[2] = value[3];
-            buffer[3] = value[4];
-            int ivalue = bytesToInt2(buffer, 0);
-            double dvalue = ((double) ivalue) * 2 * 1.8 / 1.4 / (Math.pow(2, 24) - 1);
-//            dvalue = (dvalue*1000 -1330)*10;
-//            dvalue*=10;
-            short[] shorts1 = new short[1];
-            shorts1[0] = (short) dvalue;
-            AVERAGE = dvalue;
-            queue.add(AVERAGE);
+
+
+            for (int i=0;i<5;i++)
+            {
+                byte[] buffer = new byte[4];
+                buffer[0] = 0;
+                buffer[1] = value[i*4+1];
+                buffer[2] = value[i*4+2];
+                buffer[3] = value[i*4+3];
+
+                int ivalue = bytesToInt2(buffer, 0);
+                double dvalue = ((double) ivalue) * 2 * 1.8 / 1.4 / (Math.pow(2, 24) - 1);
+                AVERAGE = dvalue;
+                Log.e("数值", String.valueOf(AVERAGE));
+                queue.add(AVERAGE);
+//                try {
+//                    writer.write(String.valueOf(AVERAGE)+",\n");
+//                }
+//                catch (Exception e)
+//                {e.printStackTrace();}
+
+            }
+//            isstart=true;
+//            System.arraycopy(value,0,allbuffer,(buffercount-1)*20,20);
+//
+//            if (buffercount ==6) {
+//
+//
+//                for (int i = 0; i < 10; i++) {
+//
+//
+//                    byte[] buffer = new byte[4];
+//                    buffer[0] = 0;
+//                    System.arraycopy(allbuffer, i * 6 + 2, buffer, 1, 3);
+//
+////                buffer[1] = value[2];
+////                buffer[2] = value[3];
+////                buffer[3] = value[4];
+//                    int ivalue = bytesToInt2(buffer, 0);
+//                    double dvalue = ((double) ivalue) * 2 * 1.8 / 1.4 / (Math.pow(2, 24) - 1);
+////            dvalue = (dvalue*1000 -1330)*10;
+////            dvalue*=10;
+////                short[] shorts1 = new short[1];
+////                shorts1[0] = (short) dvalue;
+//                    AVERAGE = dvalue;
+//                    Log.e("数值", String.valueOf(AVERAGE));
+//                    queue.add(AVERAGE);
+//                }
+//                buffercount=1;
+//            }
+//            else
+//            {
+//                buffercount++;
+//            }
 //
 ////            try {
 ////                queue.put(shorts1);
@@ -625,7 +718,7 @@ public class MainActivity extends AppCompatActivity {
 //
 //
 //            Message message = handler.obtainMessage();
-//            message.obj = "数据:" + stringBuilder.toString() + "\n " + "数值:" + strvalue + "\n";
+//            message.obj = "数据:" + stringBuilder.toString() + "\n " + "数值:" + AVERAGE + "\n";
 //            handler.sendMessage(message);
 //
 
