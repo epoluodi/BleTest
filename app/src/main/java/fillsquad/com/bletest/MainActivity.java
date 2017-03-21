@@ -331,8 +331,8 @@ public class MainActivity extends AppCompatActivity {
     private GraphicalView chart;
     private XYMultipleSeriesRenderer renderer;
     private Context context;
-    private int yMax = 2;//y轴最大值，根据不同传感器变化
-    private int xMax = 100;//一屏显示测量次数
+    private int yMax = 80;//y轴最大值，根据不同传感器变化
+    private int xMax = 80;//一屏显示测量次数
     private int yMin = 0;
 
     private int addX = -1;
@@ -413,15 +413,16 @@ public class MainActivity extends AppCompatActivity {
         setChartSettings(renderer, xTitle, yTitle,
                 minX, maxX, //x轴最小最大值
                 minY, maxY, //y轴最小最大值
-                Color.BLACK, //坐标轴颜色
-                Color.WHITE//标签颜色
+                Color.TRANSPARENT, //坐标轴颜色
+                Color.TRANSPARENT//标签颜色
         );
 
         //生成图表
         chart = ChartFactory.getLineChartView(this, mDataset, renderer);
+//        chart.setBackground(getResources().getDrawable(R.mipmap.heartgrid));
         chart.setBackgroundColor(Color.WHITE);
         //将图表添加到布局中去
-        layout.addView(chart, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT));
+        layout.addView(chart, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
 
@@ -436,27 +437,41 @@ public class MainActivity extends AppCompatActivity {
         r.setLineWidth(2);//这是线宽
         renderer.addSeriesRenderer(r);
 
+//        XYSeriesRenderer r1 = new XYSeriesRenderer();
+//        r1.setColor(color);
+//        r1.setPointStyle(style);
+//        r1.setFillPoints(fill);
+//        r1.setLineWidth(1);//这是线宽
+//        renderer.addSeriesRenderer(r1);
+
         return renderer;
     }
 
     protected void setChartSettings(XYMultipleSeriesRenderer renderer, String xTitle, String yTitle,
                                     double xMin, double xMax, double yMin, double yMax, int axesColor, int labelsColor) {
         //有关对图表的渲染可参看api文档
-        renderer.setChartTitle("心跳");//设置标题
-        renderer.setChartTitleTextSize(20);
+//        renderer.setChartTitle("心跳");//设置标题
+//        renderer.setChartTitleTextSize(20);
         renderer.setXAxisMin(xMin);//设置x轴的起始点
         renderer.setXAxisMax(xMax);//设置一屏有多少个点
         renderer.setYAxisMin(yMin);
         renderer.setYAxisMax(yMax);
-        renderer.setBackgroundColor(Color.WHITE);
-        renderer.setLabelsColor(Color.YELLOW);
+        renderer.setXLabelsPadding(50);
+        renderer.setYLabelsPadding(50);
+        renderer.setShowLabels(false);
+        renderer.setMargins(new int[]{0,0,0,0});
+
+
+//        renderer.setBackgroundColor(Color.WHITE);
+//        renderer.setLabelsColor(Color.YELLOW);
         renderer.setAxesColor(axesColor);
         renderer.setLabelsColor(labelsColor);
         renderer.setShowGrid(true);
+//        renderer.setMarginsColor(Color.WHITE);
         renderer.setGridColor(Color.RED);//设置格子的颜色
         renderer.setXLabels(15);//没有什么卵用
         renderer.setYLabels(15);//把y轴刻度平均分成多少个
-        renderer.setLabelsTextSize(25);
+//        renderer.setLabelsTextSize(25);
 //        renderer.setXTitle(xTitle);//x轴的标题
 //        renderer.setYTitle(yTitle);//y轴的标题
         renderer.setAxisTitleTextSize(30);
