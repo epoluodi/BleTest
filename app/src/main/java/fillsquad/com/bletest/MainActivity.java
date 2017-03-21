@@ -259,7 +259,7 @@ public class MainActivity extends AppCompatActivity {
                         handler.sendEmptyMessage(0);
                     }
                 };
-                timer2.schedule(timerTask1, 10, 25);
+                timer2.schedule(timerTask1, 10, 10);
 
 
             }
@@ -331,8 +331,8 @@ public class MainActivity extends AppCompatActivity {
     private GraphicalView chart;
     private XYMultipleSeriesRenderer renderer;
     private Context context;
-    private int yMax = 80;//y轴最大值，根据不同传感器变化
-    private int xMax = 80;//一屏显示测量次数
+    private int yMax = 2;//y轴最大值，根据不同传感器变化
+    private int xMax = 200;//一屏显示测量次数
     private int yMin = 0;
 
     private int addX = -1;
@@ -380,7 +380,8 @@ public class MainActivity extends AppCompatActivity {
             renderer.setXAxisMin(addX - xMax);
             renderer.setXAxisMax(addX);
         }
-
+        renderer.setYAxisMin(1.2538480003661452);
+        renderer.setYAxisMax(1.2565126959308406);
 
         //重要：在数据集中添加新的点集
         mDataset.addSeries(series);
@@ -413,8 +414,8 @@ public class MainActivity extends AppCompatActivity {
         setChartSettings(renderer, xTitle, yTitle,
                 minX, maxX, //x轴最小最大值
                 minY, maxY, //y轴最小最大值
-                Color.TRANSPARENT, //坐标轴颜色
-                Color.TRANSPARENT//标签颜色
+                Color.GREEN, //坐标轴颜色
+                Color.GREEN//标签颜色
         );
 
         //生成图表
@@ -456,25 +457,25 @@ public class MainActivity extends AppCompatActivity {
         renderer.setXAxisMax(xMax);//设置一屏有多少个点
         renderer.setYAxisMin(yMin);
         renderer.setYAxisMax(yMax);
-        renderer.setXLabelsPadding(50);
-        renderer.setYLabelsPadding(50);
+//        renderer.setXLabelsPadding(50);
+//        renderer.setYLabelsPadding(50);
         renderer.setShowLabels(false);
         renderer.setMargins(new int[]{0,0,0,0});
 
 
 //        renderer.setBackgroundColor(Color.WHITE);
-//        renderer.setLabelsColor(Color.YELLOW);
+//        renderer.setLabelsColor(Color.BLACK);
         renderer.setAxesColor(axesColor);
         renderer.setLabelsColor(labelsColor);
         renderer.setShowGrid(true);
-//        renderer.setMarginsColor(Color.WHITE);
+        renderer.setMarginsColor(Color.WHITE);
         renderer.setGridColor(Color.RED);//设置格子的颜色
         renderer.setXLabels(15);//没有什么卵用
-        renderer.setYLabels(15);//把y轴刻度平均分成多少个
-//        renderer.setLabelsTextSize(25);
+        renderer.setYLabels(20);//把y轴刻度平均分成多少个
+//        renderer.setLabelsTextSize(60);
 //        renderer.setXTitle(xTitle);//x轴的标题
 //        renderer.setYTitle(yTitle);//y轴的标题
-        renderer.setAxisTitleTextSize(30);
+//        renderer.setAxisTitleTextSize(60);
         renderer.setYLabelsAlign(Paint.Align.RIGHT);
         renderer.setPointSize((float) 2);
         renderer.setShowLegend(false);//说明文字
@@ -681,7 +682,7 @@ public class MainActivity extends AppCompatActivity {
                 int ivalue = bytesToInt2(buffer, 0);
                 double dvalue = ((double) ivalue) * 2 * 1.8 / 1.4 / (Math.pow(2, 24) - 1);
                 AVERAGE = dvalue;
-                Log.e("数值", String.valueOf(AVERAGE));
+//                Log.e("数值", String.valueOf(AVERAGE));
                 queue.add(AVERAGE);
 //                try {
 //                    writer.write(String.valueOf(AVERAGE)+",\n");
