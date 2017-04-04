@@ -380,9 +380,11 @@ public class MainActivity extends AppCompatActivity {
             renderer.setXAxisMin(addX - xMax);
             renderer.setXAxisMax(addX);
         }
-        renderer.setYAxisMin(1.2538480003661452);
-        renderer.setYAxisMax(1.2565126959308406);
+//        renderer.setYAxisMin(1.2538480003661452);
+//        renderer.setYAxisMax(1.2565126959308406);
 
+//        renderer.setYAxisMin(renderer.getYAxisMin());
+//        renderer.setYAxisMax(renderer.getYAxisMax());
         //重要：在数据集中添加新的点集
         mDataset.addSeries(series);
 
@@ -420,8 +422,8 @@ public class MainActivity extends AppCompatActivity {
 
         //生成图表
         chart = ChartFactory.getLineChartView(this, mDataset, renderer);
-//        chart.setBackground(getResources().getDrawable(R.mipmap.heartgrid));
-        chart.setBackgroundColor(Color.WHITE);
+        chart.setBackground(getResources().getDrawable(R.mipmap.backjpg));
+//        chart.setBackgroundColor(Color.WHITE);
         //将图表添加到布局中去
         layout.addView(chart, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
@@ -467,7 +469,7 @@ public class MainActivity extends AppCompatActivity {
 //        renderer.setLabelsColor(Color.BLACK);
         renderer.setAxesColor(axesColor);
         renderer.setLabelsColor(labelsColor);
-        renderer.setShowGrid(true);
+        renderer.setShowGrid(false);
         renderer.setMarginsColor(Color.WHITE);
         renderer.setGridColor(Color.RED);//设置格子的颜色
         renderer.setXLabels(15);//没有什么卵用
@@ -520,7 +522,7 @@ public class MainActivity extends AppCompatActivity {
             Log.i("搜索 信号", device.getAddress());
             Log.i("搜索 信号", String.valueOf(rssi));
 
-
+//            HC-08
             if (device.getName().equals("SPSD")) {
 
                 Message message = handler.obtainMessage();
@@ -667,7 +669,7 @@ public class MainActivity extends AppCompatActivity {
 //            isstart=false;
 //
 //            Log.e("长度",String.valueOf(value.length)+" "+stringBuilder.toString());
-
+//
 
 
 
@@ -682,13 +684,13 @@ public class MainActivity extends AppCompatActivity {
                 int ivalue = bytesToInt2(buffer, 0);
                 double dvalue = ((double) ivalue) * 2 * 1.8 / 1.4 / (Math.pow(2, 24) - 1);
                 AVERAGE = dvalue;
-//                Log.e("数值", String.valueOf(AVERAGE));
+                Log.e("数值", String.valueOf(AVERAGE));
                 queue.add(AVERAGE);
-//                try {
-//                    writer.write(String.valueOf(AVERAGE)+",\n");
-//                }
-//                catch (Exception e)
-//                {e.printStackTrace();}
+                try {
+                    writer.write(String.valueOf(AVERAGE)+",\n");
+                }
+                catch (Exception e)
+                {e.printStackTrace();}
 
             }
 //            isstart=true;
