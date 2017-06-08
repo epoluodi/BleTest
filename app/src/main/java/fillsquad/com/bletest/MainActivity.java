@@ -12,12 +12,14 @@ import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -66,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
     Timer timer, timer2;
     Button btn1, btn2, btn3, btn4, btn5;
     EditText txt;
+    String blname;
 
     EditText editText;
     Button btnset;
@@ -75,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
     byte[] bytes1;//轮训
     byte[] bytesch;//通道
 
-    boolean isstart=true;
+    boolean isstart = true;
     byte[] allbuffer;
     int buffercount;
 
@@ -91,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         queue = new LinkedBlockingQueue<>();
         allbuffer = new byte[60];
-        buffercount= 1;
+        buffercount = 1;
 //        try {
 //            shorts[0]=0;
 ////            queue.put(shorts);
@@ -105,12 +108,12 @@ public class MainActivity extends AppCompatActivity {
         bytes1[2] = (byte) 12;
         bytes1[3] = (byte) 1;
         bytes1[4] = (byte) 76;
-        File file=new File(Environment.getExternalStorageDirectory(),"data.csv");
+        File file = new File(Environment.getExternalStorageDirectory(), "data.csv");
         try {
             writer = new FileWriter(file, true);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        catch (Exception e)
-        {e.printStackTrace();}
 
 
 //
@@ -126,6 +129,7 @@ public class MainActivity extends AppCompatActivity {
 //
 //        view.setChannel(queue);
 
+        blname = "HC-08";
 
         editText = (EditText) findViewById(R.id.edittxt);
         btnset = (Button) findViewById(R.id.btnset);
@@ -189,7 +193,30 @@ public class MainActivity extends AppCompatActivity {
         btn1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                read();
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setMessage("选择蓝牙设备");
+                builder.setPositiveButton("SPSD", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        blname = "SPSD";
+
+                        read();
+                        dialogInterface.dismiss();
+                    }
+                });
+                builder.setNegativeButton("HC-08", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        blname = "HC-08";
+
+                        read();
+                        dialogInterface.dismiss();
+                    }
+                });
+                AlertDialog alertDialog = builder.create();
+                alertDialog.show();
+
+
             }
         });
         btn2.setOnClickListener(new View.OnClickListener() {
@@ -206,15 +233,15 @@ public class MainActivity extends AppCompatActivity {
                     bluetoothGattCharacteristic.setValue(bytes);
                     bluetoothGatt.writeCharacteristic(bluetoothGattCharacteristic);
                 }
-
-                bluetoothGatt.disconnect();
-                bluetoothGatt.close();
-
+                if (bluetoothGatt != null) {
+                    bluetoothGatt.disconnect();
+                    bluetoothGatt.close();
+                }
+                if (bluetoothAdapter != null)
+                    bluetoothAdapter.stopLeScan(leScanCallback);
                 try {
                     writer.close();
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -267,8 +294,6 @@ public class MainActivity extends AppCompatActivity {
         btn4.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-
 
 
 //                timer.cancel();
@@ -462,7 +487,7 @@ public class MainActivity extends AppCompatActivity {
 //        renderer.setXLabelsPadding(50);
 //        renderer.setYLabelsPadding(50);
         renderer.setShowLabels(false);
-        renderer.setMargins(new int[]{0,0,0,0});
+        renderer.setMargins(new int[]{0, 0, 0, 0});
 
 
 //        renderer.setBackgroundColor(Color.WHITE);
@@ -523,7 +548,7 @@ public class MainActivity extends AppCompatActivity {
             Log.i("搜索 信号", String.valueOf(rssi));
 
 //            HC-08
-            if (device.getName().equals("SPSD")) {
+            if (device.getName().equals(blname)) {
 
                 Message message = handler.obtainMessage();
                 message.obj = "设备名称:" + device.getName() + "\n" +
@@ -537,6 +562,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
         }
+
     };
 
 
@@ -601,8 +627,6 @@ public class MainActivity extends AppCompatActivity {
             handler.sendMessage(message);
             bluetoothGatt.setCharacteristicNotification(bluetoothGattCharacteristic, true);
             bluetoothGatt.readRemoteRssi();
-
-
 
 
 //            for (BluetoothGattDescriptor bluetoothGattDescriptor : bluetoothGattCharacteristic.getDescriptors())
@@ -672,14 +696,12 @@ public class MainActivity extends AppCompatActivity {
 //
 
 
-
-            for (int i=0;i<5;i++)
-            {
+            for (int i = 0; i < 5; i++) {
                 byte[] buffer = new byte[4];
                 buffer[0] = 0;
-                buffer[1] = value[i*4+1];
-                buffer[2] = value[i*4+2];
-                buffer[3] = value[i*4+3];
+                buffer[1] = value[i * 4 + 1];
+                buffer[2] = value[i * 4 + 2];
+                buffer[3] = value[i * 4 + 3];
 
                 int ivalue = bytesToInt2(buffer, 0);
                 double dvalue = ((double) ivalue) * 2 * 1.8 / 1.4 / (Math.pow(2, 24) - 1);
@@ -687,10 +709,10 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("数值", String.valueOf(AVERAGE));
                 queue.add(AVERAGE);
                 try {
-                    writer.write(String.valueOf(AVERAGE)+",\n");
+                    writer.write(String.valueOf(AVERAGE) + ",\n");
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                catch (Exception e)
-                {e.printStackTrace();}
 
             }
 //            isstart=true;
